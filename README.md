@@ -145,7 +145,7 @@ For additional points, write a second data pipeline compatible with Apache Airfl
 
 Be sure that your DAG runs successfully within Airflow when you executed in your AWS EC2 instance. It should produce identical results to your Prefect flow, but the final "platform" message attribute you submit should be set to "airflow".
 
-### Other Submission Notes
+### Other Notes / Submission Notes
 
 1. Be sure to fork this repository and commit/push your code back to it for grading.
 2. Your Prefect flow should be saved to a file named `prefect.py`.
@@ -160,6 +160,8 @@ If you experience permissions errors with AWS and your SQS queue, you have two o
 
 1. Generate a new Access Key and Secret Access Key in your AWS account and then run `aws configure` in your local terminal. Fresh credentials may be needed to authenticate to your own account.
 2. Alternatively, use the credentials I distribute with this assignment in Canvas. These keys have very limited access to only the SQS service, so they are only good for this project. Be sure to save your own credentials to restore after this assignment.
+
+Of course if you experience some unusual error please be in touch with the instructor.
 
 ## Reference
 
