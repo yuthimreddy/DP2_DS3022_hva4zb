@@ -1,6 +1,6 @@
 # DS3022 Data Project 2
 
-This data project is a puzzle. Your goal is to put the pieces back together.
+This data project is a puzzle. Your goal is to put the pieces back together in the right order.
 
 Your assignment is to write a Prefect data pipeline that retrieves a number of messages from an SQS queue, parses their contents, and reassembles a complete phrase made up of the fragments from each single message.
 
