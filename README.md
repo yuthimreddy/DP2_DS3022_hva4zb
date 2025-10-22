@@ -125,6 +125,14 @@ def send_solution(uvaid, phrase)
 ```
 Be sure that your response returns a `200` HTTP response message, indicating that it has been received.
 
+### Other Submission Notes
+
+1. Be sure to fork this repository and commit/push your code back to it for grading.
+2. Your Prefect flow should be saved to a file named `prefect.py`.
+3. If you attempt to write an Airflow DAG that should be saved to a file named `airflow.py`.
+4. Your code should log using the built-in logging methods for either Prefect or Airflow. You do not need to use a separate logging package. Do not save or commit log files.
+5. Do not save or commit any data or database files.
+
 ## Reference
 
 - [Working with SQS - Practical Examples](https://github.com/nmagee/learn-sqs)
