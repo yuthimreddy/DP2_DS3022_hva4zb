@@ -8,25 +8,35 @@ Your pipeline can run a single time to produce a complete result, or it can run 
 
 You can run your pipeline as many times as you like for testing. There is no penalty for running it multiple times.
 
+To get started, [**fork this repository**](https://github.com/uvasds-systems/ds3022-data-project-2/fork) and save your work to your own repository.
+
 ## Task 1 - Populate your SQS Queue
 
-Using your UVA computing ID, append it to this API endpoint:
+To populate your SQS queue with messages, you must make a request of an API. Using your UVA computing ID, append it to this API endpoint:
 
 ```
 https://j9y2xa0vx0.execute-api.us-east-1.amazonaws.com/api/scatter/<UVA_ID>
 ```
 
-Your pipeline must call this URL by way of an HTTP `POST` request. To do this using the `requests` library in python:
+Your pipeline must call this URL by way of an HTTP `POST` request. This is possible using the `requests` or `httpx` libraries in python:
 
 ```
 import requests
 
-url = "https://j9y2xa0vx0.execute-api.us-east-1.amazonaws.com/api/scatter/nem2p"
+url = "https://j9y2xa0vx0.execute-api.us-east-1.amazonaws.com/api/scatter/mst3k"
 
 payload = requests.post(url).json
 ```
 
-The `payload` object returns your SQS URL:
+```
+import httpx
+
+url = "https://j9y2xa0vx0.execute-api.us-east-1.amazonaws.com/api/scatter/mst3k"
+
+payload = httpx.post(url).json
+```
+
+In either case the `payload` object returns your SQS URL:
 
 ```
 >>> payload
@@ -93,9 +103,9 @@ There are a variety of ways to sort lists or key-value pairs in both Python and 
 
 You may run and observe your pipeline multiple times if you care to, but in the end your code must fetch and reassemble all messages in order without human intervention. You may not receive messages or sort the fragments manually.
 
-Your completed phrase should now be submitted as a message attribute for a new message that you send to a separate SQS queue, along with your computing ID.
+Your completed phrase should now be submitted as a message attribute for a new message that you send to a separate SQS queue, along with your computing ID and the platform (either "prefect" or "airflow") used for your pipeline.
 
-Send to this queue URL:
+Submit your answer to this queue:
 ```
 https://sqs.us-east-1.amazonaws.com/440848399208/dp2-submit
 ```
@@ -103,7 +113,7 @@ https://sqs.us-east-1.amazonaws.com/440848399208/dp2-submit
 To send a message with attributes, use this syntax:
 
 ```
-def send_solution(uvaid, phrase)
+def send_solution(uvaid, phrase, platform)
     try:
         response = sqs.send_message(
             QueueUrl=url,
@@ -116,6 +126,10 @@ def send_solution(uvaid, phrase)
                 'phrase': {
                     'DataType': 'String',
                     'StringValue': phrase
+                },
+                'platform': {
+                    'DataType': 'String',
+                    'StringValue': platform
                 }
             }
         )
@@ -125,17 +139,30 @@ def send_solution(uvaid, phrase)
 ```
 Be sure that your response returns a `200` HTTP response message, indicating that it has been received.
 
+## Task 4 (Optional) - Rewrite this Pipeline as an Airflow DAG
+
+For additional points, write a second data pipeline compatible with Apache Airflow. This step is not *in place of writing a Prefect flow* but in addition to it.
+
+Be sure that your DAG runs successfully within Airflow when you executed in your AWS EC2 instance. It should produce identical results to your Prefect flow, but the final "platform" message attribute you submit should be set to "airflow".
+
 ### Other Submission Notes
 
 1. Be sure to fork this repository and commit/push your code back to it for grading.
 2. Your Prefect flow should be saved to a file named `prefect.py`.
 3. If you attempt to write an Airflow DAG that should be saved to a file named `airflow.py`.
-4. Your code should log using the built-in logging methods for either Prefect or Airflow. You do not need to use a separate logging package. Do not save or commit log files.
+4. Your code should log using the built-in logging methods for either Prefect or Airflow. You do not need to use a separate logging package. Do not save or commit log files to your repo.
 5. Do not save or commit any data or database files.
+
+## AWS Issues
+
+If you experience permissions errors with AWS and your SQS queue, you have two options:
+
+1. Generate a new Access Key and Secret Access Key in your AWS account and then run `aws configure` in your local terminal. Fresh credentials may be needed to authenticate to your own account.
+2. Alternatively, use the credentials I distribute with this assignment in Canvas. These keys have very limited access to only the SQS service, so they are only good for this project. Be sure to save your own credentials to restore after this assignment.
 
 ## Reference
 
 - [Working with SQS - Practical Examples](https://github.com/nmagee/learn-sqs)
 - [`boto3` - SQS Client Documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html)
-- Prefect 
-- Airflow
+- [Prefect Reference](https://docs.prefect.io/v3/get-started)
+- [Airflow DAG Reference](https://s3.amazonaws.com/uvasds-systems/pdfs/Ultimate-Guide-to-Apache-Airflow-DAGs.pdf)
