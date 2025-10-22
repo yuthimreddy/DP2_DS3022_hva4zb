@@ -145,7 +145,7 @@ For additional points, write a second data pipeline compatible with Apache Airfl
 
 Be sure that your DAG runs successfully within Airflow when you executed in your AWS EC2 instance. It should produce identical results to your Prefect flow, but the final "platform" message attribute you submit should be set to "airflow".
 
-### Other Notes / Submission Notes
+## Notes / Submission Notes
 
 1. Be sure to fork this repository and commit/push your code back to it for grading.
 2. Your Prefect flow should be saved to a file named `prefect.py`.
