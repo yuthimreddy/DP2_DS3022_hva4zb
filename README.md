@@ -36,18 +36,18 @@ url = "https://j9y2xa0vx0.execute-api.us-east-1.amazonaws.com/api/scatter/mst3k"
 payload = httpx.post(url).json
 ```
 
-In either case the `payload` object returns your SQS URL:
+In either case the `payload` object returns your SQS URL (as a reminder if you need it):
 
 ```
 >>> payload
 {'hello': 'mst3k', 'sqs_url': 'https://sqs.us-east-1.amazonaws.com/440848399208/mst3k'}
 ```
 
-Your POST to this API will send exactly **21** messages to your SQS queue. These have been sent with a variety of random `DelaySeconds` values ranging from 30 to 900 seconds.
+Your request to this API will send exactly **21** messages to your SQS queue. These have been sent with a variety of random `DelaySeconds` values ranging from 30 to 900 seconds.
 
-Keep these delays in mind as your pipeline proceeds to the next task.
+**Keep these delays in mind as your pipeline proceeds to the next task.**
 
-**NOTE** This step (sending a `POST` request to the API) should not be repeated if your pipeline needs to run more than once, i.e. on a cron timer, to gather all messages - it clears your queue of all previous messages and repopulates all 21 messages each time.
+**NOTE** This step (sending a `POST` request to the API) should not be repeated if your pipeline needs to run more than once, i.e. on a cron timer, as it gathers all messages. The API request clears your queue of all previous messages and repopulates all 21 messages each time.
 
 ## Task 2 - Monitor Your Queue then Collect Messages
 
@@ -150,8 +150,9 @@ Be sure that your DAG runs successfully within Airflow when you executed in your
 1. Be sure to fork this repository and commit/push your code back to it for grading.
 2. Your Prefect flow should be saved to a file named `prefect.py`.
 3. If you attempt to write an Airflow DAG that should be saved to a file named `airflow.py`.
-4. Your code should log using the built-in logging methods for either Prefect or Airflow. You do not need to use a separate logging package. Do not save or commit log files to your repo.
-5. Do not save or commit any data or database files.
+4. Secondary Prefect flows or Airflow DAGs are permissible. That is, one flow may also trigger another flow, etc.
+5. Your code should log using the built-in logging methods for either Prefect or Airflow. You do not need to use a separate logging package. Do not save or commit log files to your repo.
+6. Do not save or commit any data or database files.
 
 ## AWS Issues
 
