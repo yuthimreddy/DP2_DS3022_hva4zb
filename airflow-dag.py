@@ -169,5 +169,5 @@ def quote_assembler_dag():
     final_phrase = assemble_phrase(messages)
     submit_solution(final_phrase)
 
-# This line is necessary to instantiate the DAG
+# Instantiating DAG
 quote_assembler_dag()
