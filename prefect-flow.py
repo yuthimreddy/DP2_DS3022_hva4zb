@@ -1,1 +1,124 @@
 # prefect flow goes here
+import boto3
+import time
+import requests
+from prefect import flow, task, get_run_logger
+
+# defining vars:
+uva_id = "hva4zb"
+total_messages = 21
+api_url = "https://j9y2xa0vx0.execute-api.us-east-1.amazonaws.com/api/scatter/hva4zb"
+
+# FIRST TASK: calling the API endpoint and populating queue
+@task(retries=3, retry_delay_seconds=5)
+def calling_api(url: str) -> str:
+    logger = get_run_logger()
+    logger.info(f"Calling API Endpoints: {url}")
+
+    try:
+        response = requests.post(url)
+        response.raise_for_status()
+
+        payload = response.json()
+        my_sqs_url = payload.get('sqs_url') # MY UVA-id
+
+        logger.info(f"Received SQS URL: {my_sqs_url}")
+        return my_sqs_url
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"API request failed: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Error occurred during API call: {e}")
+        raise
+
+# TASK 2: monitoring and receiving messages from SQS -
+    # monitors queue by polling and fetching messages until total_messages = 21
+
+@task
+def monitor_and_fetch_messages(queue_url: str, total_messages: int) -> list:
+    logger = get_run_logger()
+    sqs = boto3.client('sqs')
+    collected_messages = []
+
+    logger.info(f"Fetching messages from {queue_url} until {total_messages} messages are collected.")
+
+    while len(collected_messages) < total_messages:
+        try:
+            response = sqs.receive_message(
+                QueueUrl=queue_url,
+                MaxNumberOfMessages=10,
+                MessageAttributeNames=['All'],
+                WaitTimeSeconds=20
+            )    
+
+            # Error Handling: in case of null reply
+
+            if 'Messages' in response:
+                for msg in response['Messages']:
+                    try:
+                        # Parsing message body:
+                        order_no = int(msg['MessageAttributes']['order_no']['StringValue'])
+                        word = msg['MessageAttributes']['word']['StringValue']
+                        receipt_handle = msg['ReceiptHandle']
+
+                        # Store the parsed mesasge content:
+                        collected_messages.append((order_no, word))
+                        logger.info(f"Collected message {order_no}: {word}")
+
+                        # Delete the message after processing:
+                        sqs.delete_message(
+                            QueueUrl=queue_url,
+                            ReceiptHandle=receipt_handle
+                        )
+                    except Exception as e:
+                        logger.warning(f"Error parsing or deleting message: {e}")
+
+            else:
+                logger.info("No messages received in this poll. Waiting and retrying ...")
+                time.sleep(10) # retry after ten seconds
+        
+        except Exception as e:
+            logger.error(f"Error receiving messages from SQS: {e}")
+            time.sleep(10)
+        
+    logger.info(f"Successfully retrieved and deleted {total_messages} messages")
+    return collected_messages
+
+
+# TASK 3: reconstructing the original message from the received parts
+@task
+def assemble_phrase(messages: list) -> str:
+    logger = get_run_logger()
+    logger.info("Assembling the final phrase from collected messages.")
+
+    # Sort messages based on order_no
+    sorted_messages = sorted(messages, key=lambda x: x[0])
+
+    # Extract words and join them to form the final phrase
+    final_phrase = ' '.join([word for order_no, word in sorted_messages])
+    logger.info(f"Final assembled phrase: {final_phrase}")
+
+    return final_phrase
+
+# Defining the main flow
+@flow(name="SQS Message Assembler Test Flow")
+def quote_assembler_flow(uva_id: str = uva_id):
+    logger = get_run_logger()
+    logger.info("Starting the SQS Message Assembler Flow")
+
+    # Step 1: Call the API to get the SQS queue URL
+    my_queue_url = calling_api(api_url)
+
+    # Step 2: Monitor the SQS queue and fetch messages
+    messages = monitor_and_fetch_messages(my_queue_url, total_messages)
+
+    # Step 3: Assemble the final phrase from the messages
+    final_phrase = assemble_phrase(messages)
+
+    # Logging:
+    logger.info(f"Final Assembled Phrase: {final_phrase}")
+
+
+if __name__ == "__main__":
+    quote_assembler_flow(uva_id)
