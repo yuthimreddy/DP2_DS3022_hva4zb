@@ -18,13 +18,13 @@ def calling_api(url: str) -> str:
     try:
         response = requests.post(url)
         response.raise_for_status()
-
+        # Parsing the response JSON:
         payload = response.json()
         my_sqs_url = payload.get('sqs_url') # MY UVA-id
 
         logger.info(f"Received SQS URL: {my_sqs_url}")
         return my_sqs_url
-
+    # Exception handling:
     except requests.exceptions.RequestException as e:
         logger.error(f"API request failed: {e}")
         raise
@@ -41,39 +41,40 @@ def monitor_and_fetch_messages(queue_url: str, total_messages: int) -> list:
     sqs = boto3.client('sqs')
     collected_messages = []
 
+    # Log statement:
     logger.info(f"Fetching messages from {queue_url} until {total_messages} messages are collected.")
 
+    # Polling loop to fetch messages: Keeps running until all messages are collected
     while len(collected_messages) < total_messages:
         try:
             response = sqs.receive_message(
                 QueueUrl=queue_url,
                 MaxNumberOfMessages=10,
-                MessageAttributeNames=['All'],
+                MessageAttributeNames=['All'], # retrieve all message attributes, will parse in next step
                 WaitTimeSeconds=20
             )    
 
-            # Error Handling: in case of null reply
-
+            # For each message received:
             if 'Messages' in response:
                 for msg in response['Messages']:
                     try:
-                        # Parsing message body:
+                        # Parsing message body: Collecting order_no and word
                         order_no = int(msg['MessageAttributes']['order_no']['StringValue'])
                         word = msg['MessageAttributes']['word']['StringValue']
                         receipt_handle = msg['ReceiptHandle']
 
-                        # Store the parsed mesasge content:
+                        # Store the parsed message content in our list:
                         collected_messages.append((order_no, word))
                         logger.info(f"Collected message {order_no}: {word}")
 
-                        # Delete the message after processing:
+                        # Delete the message immediately after processing:
                         sqs.delete_message(
                             QueueUrl=queue_url,
                             ReceiptHandle=receipt_handle
                         )
                     except Exception as e:
                         logger.warning(f"Error parsing or deleting message: {e}")
-
+            # If no messages were received, wait and retry:
             else:
                 logger.info("No messages received in this poll. Waiting and retrying ...")
                 time.sleep(10) # retry after ten seconds
@@ -81,7 +82,7 @@ def monitor_and_fetch_messages(queue_url: str, total_messages: int) -> list:
         except Exception as e:
             logger.error(f"Error receiving messages from SQS: {e}")
             time.sleep(10)
-        
+    # Final log statement:
     logger.info(f"Successfully retrieved and deleted {total_messages} messages")
     return collected_messages
 
@@ -101,7 +102,7 @@ def assemble_phrase(messages: list) -> str:
 
     return final_phrase
 
-# Defining the main flow
+# Defining the main flow to orchestrate the tasks defined:
 @flow(name="SQS Message Assembler Test Flow")
 def quote_assembler_flow(uva_id: str = uva_id):
     logger = get_run_logger()
