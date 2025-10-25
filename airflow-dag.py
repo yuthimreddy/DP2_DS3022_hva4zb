@@ -129,8 +129,8 @@ def quote_assembler_dag():
         return final_phrase
     
     # Task 4: submitting the final solution
-    @task
-    def submit_solution(phrase: str):
+    #@task
+    #def submit_solution(phrase: str):
         sqs = boto3.client('sqs')
         
         # Log statement:
@@ -167,7 +167,7 @@ def quote_assembler_dag():
     my_queue_url = call_api_to_populate_queue()
     messages = monitor_and_fetch_messages(my_queue_url)
     final_phrase = assemble_phrase(messages)
-    submit_solution(final_phrase)
+    #submit_solution(final_phrase)
 
 # Instantiating DAG
 quote_assembler_dag()

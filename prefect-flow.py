@@ -8,6 +8,7 @@ from prefect import flow, task, get_run_logger
 uva_id = "hva4zb"
 total_messages = 21
 api_url = "https://j9y2xa0vx0.execute-api.us-east-1.amazonaws.com/api/scatter/hva4zb"
+submit_url = "https://sqs.us-east-1.amazonaws.com/440848399208/dp2-submit"
 
 # FIRST TASK: calling the API endpoint and populating queue
 @task(retries=3, retry_delay_seconds=5)
@@ -102,8 +103,48 @@ def assemble_phrase(messages: list) -> str:
 
     return final_phrase
 
+# TASK 4: submitting the final phrase to the submit_queue_url
+@task
+def submit_solution(uva_id: str, final_phrase: str, platform: str, queue_url: str):
+    logger = get_run_logger()
+    sqs = boto3.client('sqs')
+
+    # Log statement: 
+    logger.info(f"Submitting final phrase to {queue_url}...")
+
+    # Making the POST request to submit the final phrase
+    try:
+        response = sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody="DP2 Solution Submission for hva4zb:",
+            MessageAttributes={
+                'uvaid': {
+                    'StringValue': uva_id,
+                    'DataType': 'String'
+                },
+                'phrase':{
+                    'StringValue': final_phrase,
+                    'DataType': 'String'
+                },
+                'platform': {
+                    'StringValue': platform,
+                    'DataType': 'String'
+                }
+            }
+        )
+
+        # Checking for HTTP response status (must be 200):
+        if response.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
+            logger.info("Final phrase submitted successfully.")
+        else:
+            logger.error(f"Failed to submit final phrase. Response: {response}")
+
+    except Exception as e:
+        logger.error(f"Submission failed: {e}")
+        raise
+
 # Defining the main flow to orchestrate the tasks defined:
-@flow(name="SQS Message Assembler Test Flow")
+@flow(name="SQS Message Assembler Flow")
 def quote_assembler_flow(uva_id: str = uva_id):
     logger = get_run_logger()
     logger.info("Starting the SQS Message Assembler Flow")
@@ -117,8 +158,16 @@ def quote_assembler_flow(uva_id: str = uva_id):
     # Step 3: Assemble the final phrase from the messages
     final_phrase = assemble_phrase(messages)
 
+    # Step 4: submitting solution
+    submit_solution(
+        uva_id=uva_id,
+        final_phrase=final_phrase,
+        platform="prefect",
+        queue_url=submit_url
+    )
+
     # Logging:
-    logger.info(f"Final Assembled Phrase: {final_phrase}")
+    logger.info(f"Flow COMPLETED successfully for UVA ID: {uva_id}")
 
 
 if __name__ == "__main__":
